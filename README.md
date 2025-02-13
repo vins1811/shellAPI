@@ -15,7 +15,7 @@ Un semplice tool CLI in Rust per generare file FastAPI con percorsi specificati.
    ```
 3. Aggiungi l'eseguibile alla variabile di ambiente `Path` (Windows):
    ```sh
-   setx PATH "%PATH%;C:\Users\<tuo-utente>\OneDrive\Documenti\shellRust\shellAPI\target\release"
+   setx PATH "%PATH%;<percorso_del_tuo_progetto>"
    ```
 4. Verifica l'installazione eseguendo:
    ```sh
