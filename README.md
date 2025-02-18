@@ -1,6 +1,6 @@
 # shellAPI
 
-Un semplice tool CLI in Rust per generare file FastAPI con percorsi specificati.
+Un semplice tool CLI in Rust per generare file FastAPI tramite AI.
 
 ## Installazione
 
@@ -24,7 +24,11 @@ Un semplice tool CLI in Rust per generare file FastAPI con percorsi specificati.
 
 ## Uso
 
-Il programma consente di creare file Python con FastAPI e di aggiungere automaticamente le route specificate.
+Il programma consente di:
+- Creare file Python con FastAPI
+- Aggiungere automaticamente route specificate
+- Generare codice API tramite AI
+- Modificare file esistenti
 
 ### Comandi disponibili
 
@@ -50,6 +54,23 @@ async def api2():
     pass
 ```
 
+#### **Modificare un file FastAPI esistente**
+```sh
+shellAPI modify <file_name> "{route1,route2}" "{method1,method2}"
+```
+
+#### **Generare codice API tramite AI**
+Il comando `create_AI` genera automaticamente codice Python per FastAPI basato su un prompt fornito.
+Il codice generato sarà **solo codice Python**, pronto per essere salvato ed eseguito.
+
+```sh
+shellAPI create_AI "<prompt>"
+```
+Esempio:
+```sh
+shellAPI create_AI "Genera un endpoint GET che restituisca un messaggio di benvenuto"
+```
+
 #### **Uscire dal programma**
 ```sh
 shellAPI exit
@@ -57,11 +78,34 @@ shellAPI exit
 
 ## Struttura del progetto
 
-- **`main.rs`**: Gestisce l'input da terminale e richiama le funzioni appropriate.
-- **`commands.rs`**:
-  - `create(file_name_or_path: &str)`: Crea un file Python con FastAPI.
-  - `add_route(file_name_or_path: &str, route: &str, method: &str)`: Aggiunge route a un file esistente.
-- **`functions.rs`**:
-  - `is_valid(route: &str, method: &str)`: Verifica che le route e i metodi forniti siano validi.
+- **`main.rs`**
+  - Gestisce l'input da terminale
+  - Dispatch dei comandi
+  - Integrazione con l'AI
+  - Animazione dello spinner durante l'attesa
 
+- **`commands.rs`**
+  - `create(file_name_or_path: &str)`: Crea un file Python con FastAPI
+  - `add_route(file_name_or_path: &str, route: &str, method: &str)`: Aggiunge route al file
 
+- **`function.rs`**
+  - `is_valid(route: &str, method: &str)`: Verifica validità di route e metodi
+  - `validate_add_route(route: &str, method: &str, file_path: &str)`: Validazione completa
+  - `call_ollama(prompt: &str)`: Genera codice tramite AI
+  - `spinner()`: Mostra animazione durante l'elaborazione
+
+## Requisiti
+
+- Rust (ultima versione stabile)
+- Ollama installato e configurato
+- Modello ShellAI disponibile per ollama
+- Python 3.7+ (per eseguire i file generati)
+- FastAPI (`pip install fastapi`)
+- Uvicorn (`pip install uvicorn`)
+
+## Note
+
+- Il comando `ollama` deve essere disponibile nel PATH
+- Il codice generato dall'AI è ottimizzato per essere direttamente eseguibile
+- Tutti i file vengono creati con estensione `.py`
+- I metodi HTTP supportati sono: GET, POST, PUT, DELETE
