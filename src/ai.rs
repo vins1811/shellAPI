@@ -1,6 +1,5 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-
 use std::io::{stdout, Write};
 use tokio::time::{sleep, Duration};
 use dotenv::dotenv;
@@ -34,80 +33,31 @@ struct MessageResponse {
     content: String,
 }
 
-pub async fn call_ai_api(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let context = "Contesto: Stiamo sviluppando un'API in Python utilizzando FastAPI. 
+pub async fn call_ai_api(prompt: &str, context_file: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+    let mut context = String::from("Contesto: Stiamo sviluppando un'API in Python utilizzando FastAPI. 
     L'obiettivo è generare automaticamente codice Python che definisca endpoint REST
      per supportare operazioni comuni (GET, POST, PUT, DELETE). 
     Il codice generato dovrà includere la validazione dei dati, la gestione degli errori e ritornare risposte in formato JSON.
      Inoltre, verranno utilizzati moduli come pydantic per la validazione dei dati.
-     PRODUCI SOLO CODICE PYTHON PER FASTAPI, NO COMMENTI, SPIEGAZIONI, RAGIONAMENTO. GENERA PLAIN TEXT NO MARKDOWN.";
+     PRODUCI SOLO CODICE PYTHON PER FASTAPI, NO COMMENTI, SPIEGAZIONI, RAGIONAMENTO. GENERA PLAIN TEXT NO MARKDOWN.");
+
+    if let Some(file_context) = context_file {
+        context.push_str("\n\nRiscrivi tutto il codice già presente e aggiungine di nuovo con le nuove 
+        esigente che ti ho detto\nCodice già presente: :\n");
+        context.push_str(file_context);
+    }
     
-    // Esempi aggiornati in cui l'AI deve produrre codice Python per FastAPI
-    let example_1 = r#"Esempio 1:
-Input: "Genera un endpoint GET che restituisca un messaggio di benvenuto."
-Risposta:
-from fastapi import FastAPI
-app = FastAPI()
-
-@app.get("/welcome")
-async def welcome():
-    return {"message": "Benvenuto!"}"#;
-    
-    let example_2 = r#"Esempio 2:
-Input: "Genera un endpoint POST per creare un nuovo utente. L'utente ha nome e email."
-Risposta:
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
-app = FastAPI()
-
-class User(BaseModel):
-    name: str
-    email: str
-
-@app.post("/users")
-async def create_user(user: User):
-    # Esegui controlli, ad es. per email duplicata
-    return {"message": "Utente creato", "user": user.dict()}"#;
-    
-    let example_3 = r#"Esempio 3:
-Input: "Genera un endpoint PUT per aggiornare i dati di un utente esistente."
-Risposta:
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
-app = FastAPI()
-
-class UserUpdate(BaseModel):
-    name: str
-    email: str
-
-@app.put("/users/{user_id}")
-async def update_user(user_id: int, user: UserUpdate):
-    # Verifica se l'utente esiste, altrimenti lancia un'eccezione
-    return {"message": "Utente aggiornato", "user": user.dict()}"#;
-    
-    let example_4 = r#"Esempio 4:
-Input: "Genera un endpoint DELETE per eliminare un utente in base all'id."
-Risposta:
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI()
-
-@app.delete("/users/{user_id}")
-async def delete_user(user_id: int):
-    # Verifica se l'utente esiste, altrimenti restituisci errore 404
-    return {"message": "Utente eliminato con successo"}"#;
+    let example = include_str!("./example.txt");
 
     let complete_prompt = format!(
-        "{}\n\n{}\n\n{}\n\n{}\n\nDomanda: {}",
-        example_1, example_2, example_3, example_4, prompt
+        "{}\n{}",
+        example, prompt
     );
 
     dotenv().ok();
 
     let api_key = "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";
-    let model = "deepseek/deepseek-chat:free".to_string(); // Default: gpt-4-turbo
+    let model = "deepseek/deepseek-chat:free".to_string();
     let url = "https://openrouter.ai/api/v1/chat/completions".to_string();
 
     let client = Client::new();

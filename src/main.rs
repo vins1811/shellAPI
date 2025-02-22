@@ -1,4 +1,4 @@
-use std::env;
+use std::io::{self, Write};
 mod commands;
 use commands::create;
 mod function;
@@ -6,95 +6,147 @@ use function::validate_add_route;
 mod ai;
 use ai::{call_ai_api, spinner};
 
-#[tokio::main]
-async fn main() {
-    let args: Vec<String> = env::args().skip(1).collect();
-    if args.is_empty() {
-        println!("Usage: shellAPI <command> [args]");
-        println!("Commands:");
-        println!("  exit\tExit the program");
-        println!("  create <file_name> {{routes}} {{methods}}\tCreate a FastAPI file with routes");
-        println!("  create_AI <prompt>\tGenerate API code using an AI model");
-        println!("\nExample:");
-        println!("shellAPI create_AI \"Genera un endpoint GET che restituisca un messaggio di benvenuto.\"");
-        return;
-    }
-
-    if !commands_dispatch(args).await {
-        std::process::exit(0);
-    }
+fn continue_prompt() -> bool {
+    let choice = get_user_input("\nPress Enter to continue or 'q' to quit: ");
+    !choice.eq_ignore_ascii_case("q")
 }
 
-async fn commands_dispatch(args: Vec<String>) -> bool {
-    let command = args.get(0).map(|s| s.as_str());
+#[tokio::main]
+async fn main() {
+    loop {
+        print_menu();
+        let choice = get_user_input("Enter your choice: ");
 
-    match command {
-        Some("exit") => {
-            println!("Exiting shellAPI");
-            false
-        }
-        Some("create") => {
-            if args.len() == 4 {
-                let file_name = args.get(1).map(String::as_str).unwrap_or("main");
+        match choice.as_str() {
+            "1" => {
+                let file_name = get_user_input("Enter file name: ");
+                let routes = get_user_input("Enter routes (comma-separated): ");
+                let methods = get_user_input("Enter methods (comma-separated): ");
+                
                 let file_path = if file_name.ends_with(".py") {
-                    file_name.to_string()
+                    file_name
                 } else {
                     format!("{}.py", file_name)
                 };
 
                 let content = "from fastapi import FastAPI\napp = FastAPI()\n";
-                create(&file_path, &content);
-                validate_add_route(&args[2], &args[3], &file_path);
+                create(&file_path, content);
+                validate_add_route(&format!("{{{}}}", routes), &format!("{{{}}}", methods), &file_path);
+                
+                if !continue_prompt() {
+                    break;
+                }
             }
-            true
-        }
-        Some("modify") => {
-            if args.len() == 4 {
-                let file_name = args.get(1).map(String::as_str).unwrap_or("main");
+            "2" => {
+                let file_name = get_user_input("Enter file name: ");
+                let routes = get_user_input("Enter routes (comma-separated): ");
+                let methods = get_user_input("Enter methods (comma-separated): ");
+                
                 let file_path = if file_name.ends_with(".py") {
-                    file_name.to_string()
+                    file_name
                 } else {
                     format!("{}.py", file_name)
                 };
 
-                if !validate_add_route(&args[2], &args[3], &file_path) {
-                    return true;
+                validate_add_route(&format!("{{{}}}", routes), &format!("{{{}}}", methods), &file_path);
+                
+                if !continue_prompt() {
+                    break;
                 }
             }
-            true
-        }
-        Some("create_AI") => {
-            if args.len() == 3 {
-                let file_name = args.get(1).map(String::as_str).unwrap_or("main");
+            "3" => {
+                let file_name = get_user_input("Enter file name: ");
+                let prompt = get_user_input("Enter your prompt: ");
+                
                 let file_path = if file_name.ends_with(".py") {
-                    file_name.to_string()
+                    file_name
                 } else {
                     format!("{}.py", file_name)
                 };
-
-                let prompt = args.get(2).unwrap();
-                if prompt.is_empty() {
-                    println!("Prompt vuoto. Uscita.");
-                    return false;
-                }
 
                 println!("Generating the API code...\n");
                 let spinner_handle = tokio::spawn(spinner());
 
-                let generated_code = call_ai_api(prompt).await.unwrap();
+                match call_ai_api(&prompt, None).await {
+                    Ok(generated_code) => {
+                        spinner_handle.abort();
+                        print!("\x1B[2J\x1B[1;1H");
+                        create(&file_path, &generated_code);
+                        println!("Code generated successfully!");
+                    }
+                    Err(e) => {
+                        spinner_handle.abort();
+                        println!("Error generating code: {}", e);
+                    }
+                }
                 
-                spinner_handle.abort();
-                print!("\x1B[2J\x1B[1;1H");
-                create(&file_path, &generated_code);
-                true
-            } else {
-                println!("Usage: shellAPI create_AI <prompt>");
-                true
+                if !continue_prompt() {
+                    break;
+                }
+            }
+            "4" => {
+                let file_name = get_user_input("Enter file name: ");
+                let prompt = get_user_input("Enter your prompt: ");
+                
+                let file_path = if file_name.ends_with(".py") {
+                    file_name
+                } else {
+                    format!("{}.py", file_name)
+                };
+
+                let content = std::fs::read_to_string(&file_path)
+                    .unwrap_or_else(|_| String::from(""));
+
+                println!("Generating the API code...\n");
+                let spinner_handle = tokio::spawn(spinner());
+
+                match call_ai_api(&prompt, Some(&content)).await {
+                    Ok(generated_code) => {
+                        spinner_handle.abort();
+                        print!("\x1B[2J\x1B[1;1H");
+                        create(&file_path, &generated_code);
+                        println!("Code generated successfully!");
+                    }
+                    Err(e) => {
+                        spinner_handle.abort();
+                        println!("Error generating code: {}", e);
+                    }
+                }
+                
+                if !continue_prompt() {
+                    break;
+                }
+            }
+            "5" => {
+                println!("Exiting program...");
+                break;
+            }
+            _ => {
+                println!("Invalid choice, please try again.");
+                if !continue_prompt() {
+                    break;
+                }
             }
         }
-        _ => {
-            println!("Command not recognized");
-            true
-        }
     }
+}
+
+fn print_menu() {
+    print!("\x1B[2J\x1B[1;1H");
+    println!("=== ShellAPI Menu ===");
+    println!("1. Create new FastAPI file");
+    println!("2. Modify existing FastAPI file");
+    println!("3. Generate API with AI");
+    println!("4. Modify API with AI");
+    println!("5. Exit");
+    println!("===================");
+}
+
+fn get_user_input(prompt: &str) -> String {
+    print!("{}", prompt);
+    io::stdout().flush().unwrap();
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read input");
+    input.trim().to_string()
 }
