@@ -42,7 +42,8 @@ async fn commands_dispatch(args: Vec<String>) -> bool {
                     format!("{}.py", file_name)
                 };
 
-                create(&file_path);
+                let content = "from fastapi import FastAPI\napp = FastAPI()\n";
+                create(&file_path, &content);
                 validate_add_route(&args[2], &args[3], &file_path);
             }
             true
@@ -63,17 +64,28 @@ async fn commands_dispatch(args: Vec<String>) -> bool {
             true
         }
         Some("create_AI") => {
-            if args.len() == 2 {
-                let prompt = args.get(1).unwrap();
+            if args.len() == 3 {
+                let file_name = args.get(1).map(String::as_str).unwrap_or("main");
+                let file_path = if file_name.ends_with(".py") {
+                    file_name.to_string()
+                } else {
+                    format!("{}.py", file_name)
+                };
+
+                let prompt = args.get(2).unwrap();
                 if prompt.is_empty() {
                     println!("Prompt vuoto. Uscita.");
                     return false;
                 }
+
                 println!("Generating the API code...\n");
                 let spinner_handle = tokio::spawn(spinner());
+
                 let generated_code = call_ai_api(prompt).await.unwrap();
+                
                 spinner_handle.abort();
-                println!("Generated code:\n{}", generated_code);
+                print!("\x1B[2J\x1B[1;1H");
+                create(&file_path, &generated_code);
                 true
             } else {
                 println!("Usage: shellAPI create_AI <prompt>");

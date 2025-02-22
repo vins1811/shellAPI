@@ -117,7 +117,7 @@ async def delete_user(user_id: int):
             Message { role: "system".to_string(), content: context.to_string() },
             Message { role: "user".to_string(), content: complete_prompt.to_string() },
         ],
-        max_tokens: 300,
+        max_tokens: 700,
         temperature: 0.7,
     };
 
