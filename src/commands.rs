@@ -31,3 +31,26 @@ pub fn add_route(file_name_or_path: &str, route: &str, method: &str) {
     
     println!("Route added successfully to {}", file_name_or_path);
 }
+
+pub fn create_project(project_name: &str) {
+    //CREATING PROJECT STRUCTURE
+    println!("Creating Python porject...");
+    std::fs::create_dir(project_name).expect("Error creating project");
+
+    let mut file = format!("{}/main.py", project_name);
+    std::fs::File::create(&file).expect("Error creating main file");
+
+    file = format!("{}/db", project_name);
+    std::fs::create_dir(file).expect("Error creating project");
+
+    file = format!("{}/db/model.py", project_name);
+    std::fs::File::create(&file).expect("Error creating main file");
+
+    file = format!("{}/db/schema.py", project_name);
+    std::fs::File::create(&file).expect("Error creating main file");
+
+    file = format!("{}/db/db.py", project_name);
+    std::fs::File::create(&file).expect("Error creating main file");
+    
+    println!("Python project created successfully!");
+}

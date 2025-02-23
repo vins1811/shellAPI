@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 mod commands;
-use commands::create;
+use commands::{create, create_project};
 mod function;
 use function::validate_add_route;
 mod ai;
@@ -67,7 +67,7 @@ async fn main() {
                 println!("Generating the API code...\n");
                 let spinner_handle = tokio::spawn(spinner());
 
-                match call_ai_api(&prompt, None).await {
+                match call_ai_api(&prompt, None, None).await {
                     Ok(generated_code) => {
                         spinner_handle.abort();
                         print!("\x1B[2J\x1B[1;1H");
@@ -100,7 +100,7 @@ async fn main() {
                 println!("Generating the API code...\n");
                 let spinner_handle = tokio::spawn(spinner());
 
-                match call_ai_api(&prompt, Some(&content)).await {
+                match call_ai_api(&prompt, Some(&content), None).await {
                     Ok(generated_code) => {
                         spinner_handle.abort();
                         print!("\x1B[2J\x1B[1;1H");
@@ -118,6 +118,10 @@ async fn main() {
                 }
             }
             "5" => {
+                let proj_name = get_user_input("Enter file name: ");
+                create_project(&proj_name);
+            }
+            "6" => {
                 println!("Exiting program...");
                 break;
             }
@@ -138,7 +142,8 @@ fn print_menu() {
     println!("2. Modify existing FastAPI file");
     println!("3. Generate API with AI");
     println!("4. Modify API with AI");
-    println!("5. Exit");
+    println!("5. Create FastAPI project [MVC configuration]");
+    println!("6. Exit");
     println!("===================");
 }
 

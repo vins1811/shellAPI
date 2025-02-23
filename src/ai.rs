@@ -2,7 +2,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
 use tokio::time::{sleep, Duration};
-use std::env;
+use dotenv::dotenv;
 
 #[derive(Serialize)]
 struct OpenAIRequest {
@@ -33,7 +33,7 @@ struct MessageResponse {
     content: String,
 }
 
-pub async fn call_ai_api(prompt: &str, context_file: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn call_ai_api(prompt: &str, context_file: Option<&str>, example: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
     // Use compile-time API key
     let api_key = env!("SHELLAPI_API_KEY");
     let model = "deepseek/deepseek-chat:free".to_string();
@@ -54,12 +54,23 @@ pub async fn call_ai_api(prompt: &str, context_file: Option<&str>) -> Result<Str
         context.push_str(file_context);
     }
     
-    let example = include_str!("./example.txt");
+    let example_path: String;
 
+    if let Some(example) = example {
+        example_path = format!("./examples/{}.txt", example);
+    }
+    else {
+        example_path = "./examples/example.txt".to_string();
+    }
+
+    let example = std::fs::read_to_string(example_path)?;
+    
     let complete_prompt = format!(
         "{}\n{}",
         example, prompt
     );
+
+    dotenv().ok();
 
     let client = Client::new();
     let request_body = OpenAIRequest {
