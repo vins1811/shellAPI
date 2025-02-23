@@ -39,13 +39,13 @@ pub async fn call_ai_api(prompt: &str, context_file: Option<&str>, example: Opti
     let model = "deepseek/deepseek-chat:free".to_string();
     let url = "https://openrouter.ai/api/v1/chat/completions".to_string();
 
-
+    let path = env!("SHELLAPI_PATH");
 
     let mut context = String::from("Contesto: Stiamo sviluppando un'API in Python utilizzando FastAPI. 
     L'obiettivo è generare automaticamente codice Python che definisca endpoint REST
      per supportare operazioni comuni (GET, POST, PUT, DELETE). 
     Il codice generato dovrà includere la validazione dei dati, la gestione degli errori e ritornare risposte in formato JSON.
-     Inoltre, verranno utilizzati moduli come pydantic per la validazione dei dati.
+     Inoltre, verranno utilizzati moduli come pydantic per la validazione dei dati. ATTIENITI QUANTO PIÙ POSSIBILE AGLI ESEMPI CHE TI FORNIRO'.
      PRODUCI SOLO CODICE PYTHON PER FASTAPI, NO COMMENTI, SPIEGAZIONI, RAGIONAMENTO. GENERA PLAIN TEXT NO MARKDOWN.");
 
     if let Some(file_context) = context_file {
@@ -57,10 +57,10 @@ pub async fn call_ai_api(prompt: &str, context_file: Option<&str>, example: Opti
     let example_path: String;
 
     if let Some(example) = example {
-        example_path = format!("./examples/{}.txt", example);
+        example_path = format!("{}/{}.txt",path, example);
     }
     else {
-        example_path = "./examples/example.txt".to_string();
+        example_path = format!("{}/example.txt", path);
     }
 
     let example = std::fs::read_to_string(example_path)?;
@@ -79,8 +79,8 @@ pub async fn call_ai_api(prompt: &str, context_file: Option<&str>, example: Opti
             Message { role: "system".to_string(), content: context.to_string() },
             Message { role: "user".to_string(), content: complete_prompt.to_string() },
         ],
-        max_tokens: 700,
-        temperature: 0.7,
+        max_tokens: 1000,
+        temperature: 0.9,
     };
 
 

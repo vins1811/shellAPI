@@ -1,0 +1,75 @@
+ESEMPIO:
+from fastapi import FastAPI, HTTPException, Depends, status
+from typing import Annotated
+from db.db import engine, get_db
+from sqlalchemy.orm import Session
+from db.model import *
+from db.schema import *
+from services.UserServices import UserServices
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+app = FastAPI()
+Base.metadata.create_all(bind = engine)
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+db = Annotated[Session, Depends(get_db)]
+
+@app.post("/posts/", status_code=status.HTTP_201_CREATED)
+def create_post(post: PostBase, db: db):
+    try:
+        db_post = Post(**post.model_dump())
+        db.add(db_post)
+        db.commit()
+        db.refresh(db_post)
+        return {"message": "Post created successfully", "data": post}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@app.get("/posts/{post_id}", status_code=status.HTTP_200_OK)
+def get_post(post_id: int, db: db):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if post:
+        return post 
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+@app.post("/users/", status_code = status.HTTP_201_CREATED)
+def create_user(user: UserBase, db: db):
+    user_services = UserServices()
+    created, token = user_services.create_user(user, db)
+    if created:
+        return {"message": "User created successfully", "token": token}
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not created")
+
+@app.get("/users/", status_code=status.HTTP_200_OK, response_model=list[UserBase])
+def get_users(db: db):
+    user = db.query(User).all()
+    if user:
+        return user
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+@app.get("/users/{user_id}", status_code=status.HTTP_200_OK)
+def get_user(user_id: int, db: db):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        return user
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+@app.get("/login/", status_code=status.HTTP_200_OK)
+def login(user: UserBase, db: db):
+    user_services = UserServices()
+    autenticated, token =  user_services.login(user, db)
+    if autenticated:
+        return {"message": "User authenticated", "token": token}
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong credentials")
+
+@app.get("/prova/", status_code=status.HTTP_200_OK)
+def prova(db: db):
+    return db.query(Post).join(User).all()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

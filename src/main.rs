@@ -119,7 +119,12 @@ async fn main() {
             }
             "5" => {
                 let proj_name = get_user_input("Enter file name: ");
-                create_project(&proj_name);
+                let prompt = get_user_input("Enter your prompt: ");
+                create_project(&proj_name, &prompt).await;
+
+                if !continue_prompt() {
+                    break;
+                }
             }
             "6" => {
                 println!("Exiting program...");
