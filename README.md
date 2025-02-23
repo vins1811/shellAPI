@@ -9,38 +9,65 @@ Un semplice tool CLI in Rust per generare file FastAPI tramite AI.
    git clone <repository-url>
    cd shellAPI
    ```
-2. Compila il progetto:
+
+2. Configura la chiave API:
+   Crea il file `.cargo/config.toml`:
+   ```toml
+   [env]
+   SHELLAPI_API_KEY = "your-api-key-here" usiamo openrouter con deepseek. API gratuite
+   ```
+
+3. Compila il progetto:
    ```sh
    cargo build --release
    ```
-3. Aggiungi l'eseguibile alla variabile di ambiente `Path` (Windows):
-   ```sh
-   setx PATH "%PATH%;<percorso_del_tuo_progetto>"
-   ```
-4. Verifica l'installazione eseguendo:
-   ```sh
-   shellAPI --help
+
+4. (Opzionale) Aggiungi l'eseguibile al PATH:
+   ```powershell
+   $env:Path += ";$PWD\target\release"
    ```
 
 ## Uso
 
-Il programma consente di:
-- Creare file Python con FastAPI
-- Aggiungere automaticamente route specificate
-- Generare codice API tramite AI
-- Modificare file esistenti
-
-### Comandi disponibili
-
-#### **Creare un file FastAPI con percorsi e metodi**
+Esegui il programma con:
 ```sh
-shellAPI create <file_name> "{route1,route2}" "{method1,method2}"
+shellAPI
 ```
-Esempio:
-```sh
-shellAPI create test "{api1,api2}" "{get,post}"
+
+### Menu Interattivo
+
+Il programma presenta un menu interattivo con le seguenti opzioni:
+
+1. **Creare un nuovo file FastAPI**
+   - Richiede nome del file
+   - Richiede routes (separate da virgola)
+   - Richiede metodi HTTP (separati da virgola)
+
+2. **Modificare un file FastAPI esistente**
+   - Richiede nome del file esistente
+   - Richiede nuove routes (separate da virgola)
+   - Richiede nuovi metodi HTTP (separati da virgola)
+
+3. **Generare API con AI**
+   - Richiede nome del file da creare
+   - Richiede il prompt per l'AI
+
+4. **Modificare API con AI**
+   - Richiede nome del file da modificare
+   - Richiede il prompt per l'AI
+
+5. **Uscire dal programma**
+
+### Esempi
+
+Dopo aver selezionato l'opzione 1 o 2:
 ```
-Questo comando creerà `test.py` con il contenuto:
+Enter file name: test
+Enter routes (comma-separated): api1,api2
+Enter methods (comma-separated): get,post
+```
+
+Questo creerà/modificherà `test.py` con il contenuto:
 ```python
 from fastapi import FastAPI
 app = FastAPI()
@@ -54,35 +81,18 @@ async def api2():
     pass
 ```
 
-#### **Modificare un file FastAPI esistente**
-```sh
-shellAPI modify <file_name> "{route1,route2}" "{method1,method2}"
+Per l'opzione 3 (Generazione AI):
 ```
-
-#### **Generare codice API tramite AI**
-Il comando `create_AI` genera automaticamente codice Python per FastAPI basato su un prompt fornito.
-Il codice generato sarà **solo codice Python**, pronto per essere salvato ed eseguito.
-
-```sh
-shellAPI create_AI "<prompt>"
-```
-Esempio:
-```sh
-shellAPI create_AI "Genera un endpoint GET che restituisca un messaggio di benvenuto"
-```
-
-#### **Uscire dal programma**
-```sh
-shellAPI exit
+Enter file name: users_api
+Enter your prompt: crea un endpoint GET che restituisca un messaggio di benvenuto
 ```
 
 ## Struttura del progetto
 
 - **`main.rs`**
-  - Gestisce l'input da terminale
-  - Dispatch dei comandi
-  - Integrazione con l'AI
-  - Animazione dello spinner durante l'attesa
+  - Gestisce l'interfaccia CLI interattiva
+  - Menu principale e input utente
+  - Gestione dello spinner durante le operazioni
 
 - **`commands.rs`**
   - `create(file_name_or_path: &str)`: Crea un file Python con FastAPI
@@ -91,21 +101,32 @@ shellAPI exit
 - **`function.rs`**
   - `is_valid(route: &str, method: &str)`: Verifica validità di route e metodi
   - `validate_add_route(route: &str, method: &str, file_path: &str)`: Validazione completa
-  - `call_ollama(prompt: &str)`: Genera codice tramite AI
+
+- **`ai.rs`**
+  - `call_ai_api(prompt: &str)`: Genera codice tramite API OpenRouter
   - `spinner()`: Mostra animazione durante l'elaborazione
+
+- **`build.rs`**
+  - Gestisce la configurazione durante la compilazione
+  - Incorpora la chiave API nell'eseguibile
 
 ## Requisiti
 
 - Rust (ultima versione stabile)
-- Ollama installato e configurato
-- Modello ShellAI disponibile per ollama
 - Python 3.7+ (per eseguire i file generati)
 - FastAPI (`pip install fastapi`)
 - Uvicorn (`pip install uvicorn`)
 
 ## Note
 
-- Il comando `ollama` deve essere disponibile nel PATH
+- La chiave API viene incorporata nell'eseguibile durante la compilazione
 - Il codice generato dall'AI è ottimizzato per essere direttamente eseguibile
 - Tutti i file vengono creati con estensione `.py`
 - I metodi HTTP supportati sono: GET, POST, PUT, DELETE
+- Dopo ogni operazione, premere Enter per continuare o 'q' per uscire
+
+## Sicurezza
+
+- La chiave API è incorporata nell'eseguibile durante la compilazione
+- Il file `.cargo/config.toml` non deve essere incluso nel controllo versione
+- Aggiungere `.cargo/config.toml` al `.gitignore`

@@ -2,7 +2,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
 use tokio::time::{sleep, Duration};
-use dotenv::dotenv;
+use std::env;
 
 #[derive(Serialize)]
 struct OpenAIRequest {
@@ -34,6 +34,13 @@ struct MessageResponse {
 }
 
 pub async fn call_ai_api(prompt: &str, context_file: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+    // Use compile-time API key
+    let api_key = env!("SHELLAPI_API_KEY");
+    let model = "deepseek/deepseek-chat:free".to_string();
+    let url = "https://openrouter.ai/api/v1/chat/completions".to_string();
+
+
+
     let mut context = String::from("Contesto: Stiamo sviluppando un'API in Python utilizzando FastAPI. 
     L'obiettivo è generare automaticamente codice Python che definisca endpoint REST
      per supportare operazioni comuni (GET, POST, PUT, DELETE). 
@@ -53,12 +60,6 @@ pub async fn call_ai_api(prompt: &str, context_file: Option<&str>) -> Result<Str
         "{}\n{}",
         example, prompt
     );
-
-    dotenv().ok();
-
-    let api_key = "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";
-    let model = "deepseek/deepseek-chat:free".to_string();
-    let url = "https://openrouter.ai/api/v1/chat/completions".to_string();
 
     let client = Client::new();
     let request_body = OpenAIRequest {
